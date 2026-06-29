@@ -13,32 +13,37 @@ export default function Login({ onLogin }: LoginProps) {
   const [error, setError] = useState('');
 
   async function handleLogin(intendedRole: 'manager' | 'employee') {
-    setLoading(intendedRole);
-    setError('');
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const token = await result.user.getIdToken();
+  setLoading(intendedRole);
+  setError('');
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const token = await result.user.getIdToken();
 
-      const res = await fetch(`${BASE}/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      const actualRole = data.role;
+    const res = await fetch(`${BASE}/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    const actualRole = data.role;
 
-      if (intendedRole === 'manager' && actualRole !== 'manager') {
-        await signOut(auth);
-        setError("This account isn't registered as a manager.");
-        setLoading(null);
-        return;
+    // Strict match required: the button clicked must match the account's real role
+    if (intendedRole !== actualRole) {
+      await signOut(auth);
+      if (intendedRole === 'manager') {
+        setError("This account isn't registered as a manager. Use the Employee button instead.");
+      } else {
+        setError("This is a manager account. Use the Manager button instead.");
       }
-
-      onLogin(result.user, actualRole);
-    } catch (err: any) {
-      setError('Sign-in failed. Try again.');
-    } finally {
       setLoading(null);
+      return;
     }
+
+    onLogin(result.user, actualRole);
+  } catch (err: any) {
+    setError('Sign-in failed. Try again.');
+  } finally {
+    setLoading(null);
   }
+}
 
   return (
     <div style={{
